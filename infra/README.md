@@ -134,6 +134,7 @@ user-service:
 
 `product-service` already ships as an ASP.NET Core service in `services/product-service` and is wired in `docker-compose.yml` with `products_db`.
 
+```yaml
 search-service:
   build:
     context: ../services/search-service
@@ -160,3 +161,4 @@ search-service:
       condition: service_healthy
   networks:
     - ecommerce-net
+```
