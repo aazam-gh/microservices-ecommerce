@@ -1,0 +1,41 @@
+{
+  "realm": "ecommerce",
+  "displayName": "E-Commerce Platform",
+  "enabled": true,
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "accessTokenLifespan": 900,
+  "ssoSessionMaxLifespan": 36000,
+  "clients": [
+    {
+      "clientId": "ecommerce-app",
+      "name": "E-Commerce Frontend",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost/*"],
+      "webOrigins": ["http://localhost"]
+    },
+    {
+      "clientId": "ecommerce-service",
+      "name": "E-Commerce Backend Services",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "secret": "service-secret-change-in-production"
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "customer", "description": "Standard customer role" },
+      { "name": "admin", "description": "Platform administrator role" }
+    ]
+  },
+  "defaultRoles": ["customer"]
+}

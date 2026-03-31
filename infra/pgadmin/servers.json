@@ -1,0 +1,18 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "E-Commerce PostgreSQL",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "ecommerce",
+      "Password": "ecommerce123",
+      "SSLMode": "prefer",
+      "SSLCert": "",
+      "SSLKey": "",
+      "SSLRootCert": "",
+      "Comment": "E-Commerce Platform"
+    }
+  }
+}
