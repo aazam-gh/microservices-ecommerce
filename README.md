@@ -1,87 +1,188 @@
-# 📦 E-Commerce Platform
+# E-Commerce Platform
 
-Distributed, saga-driven e-commerce backend built with Go, .NET, Kafka, and centralized Keycloak authentication. Each service owns its database, follows event-driven best practices (Outbox + Saga choreography), and exposes a clear HTTP contract behind Nginx.
+Microservices-based backend platform with a running local stack (Docker Compose), centralized auth through Keycloak, and gateway routing through Nginx.
 
-## Highlights
-1. Microservices map: user, catalog, orders, payments, search, and notifications wired through Kafka topics and idempotent handlers.
-2. Resilient patterns: transactional outbox tables, saga choreography for distributed consistency, retry-friendly compensation, and circuit breakers at the edge.
-3. Observability-first: structured Zap logs, Prometheus metrics, distributed traces in Jaeger, and centralized dashboards.
+This README reflects the current repository state as of March 31, 2026.
 
-## Architecture & Stack
-| Layer | Technology |
-| --- | --- |
-| Language | Go 1.25+ and .NET 8 (product-service) |
-| HTTP | Fiber v2 (Go services), ASP.NET Core (product-service) |
-| Persistence | PostgreSQL 16 (one DB per service) |
-| Search | Elasticsearch 8 |
-| Messaging | Apache Kafka |
-| Cache | Redis 7 |
-| Auth | Keycloak 24 (OAuth2 / OIDC) |
-| Edge | Nginx + auth_request |
-| Packaging | Docker Compose for local, Kubernetes for production |
-| CI/CD | GitHub Actions + Terraform |
-| Observability | Prometheus, Grafana, Jaeger |
+## Current Status
 
-## Quick Start (Local)
-1. Install Go 1.25+, .NET 8 SDK, Docker Desktop, and Git.
-2. Clone the repo and enter it.
-3. Launch the shared infrastructure from `infra/docker-compose.yml` and wait ~60 seconds for Keycloak.
-4. Confirm services with `docker-compose ps` and hit http://localhost:8180/realms for Keycloak readiness.
-5. Tooling credentials: Keycloak admin/admin123, Grafana admin/grafana123, pgAdmin admin@ecommerce.com/pgadmin123.
+Implemented services:
+- `user-service` (Go + Fiber + PostgreSQL + Redis + Keycloak introspection)
+- `search-service` (Go + Fiber + Elasticsearch + optional Redis cache)
 
-## Running a Service Locally
-1. `cd services/<service>` (for example `services/user-service`, `services/product-service`, or `services/search-service`).
-2. `cp .env.example .env` and adapt secrets if needed.
-3. Start the service:
-   - Go services: `go run cmd/main.go`
-   - product-service (.NET): `dotnet run --project Ecommerce.ProductService.csproj`
-4. Use a Keycloak token (`/realms/ecommerce/protocol/openid-connect/token`) for protected endpoints, passing the bearer token on requests.
-5. `user-service` now uses Redis for Keycloak token introspection caching; tune `REDIS_AUTH_CACHE_TTL`, `REDIS_KEY_PREFIX`, or disable it with `REDIS_ENABLED=false`.
-6. `search-service` proxies Elasticsearch via `/search?q=…` and caches successful responses in Redis (`REDIS_CACHE_TTL`, `REDIS_KEY_PREFIX`, `ELASTICSEARCH_INDEX`).
+Scaffolded but not implemented yet:
+- `order-service`
+- `payment-service`
+- `notification-service`
 
-## Service Map
-| Service | Port | Focus |
+Work in progress:
+- `product-service` (.NET 8 + ASP.NET Core + PostgreSQL)
+
+## Tech Stack
+
+- Go `1.25.x` (user/search services)
+- .NET `8.0` (product service)
+- PostgreSQL 16
+- Redis 7
+- Kafka + Zookeeper + Kafdrop
+- Elasticsearch 8 + Kibana
+- Keycloak 24
+- Nginx
+- Prometheus + Grafana + Jaeger
+
+## Repository Layout
+
+- `services/user-service` - user profile, address management, token validation endpoint
+- `services/product-service` - product + category service (WIP)
+- `services/search-service` - Elasticsearch query API (`/search?q=...`)
+- `services/order-service` - scaffold (`go.mod` only)
+- `services/payment-service` - scaffold (`go.mod` only)
+- `services/notification-service` - scaffold (`go.mod` only)
+- `infra` - Docker Compose, Nginx, Keycloak realm export, Prometheus/Grafana, Terraform, K8s manifests
+- `docs/openapi` - placeholder only (`.gitkeep`)
+
+## Prerequisites
+
+- Docker (Docker Desktop or Docker Engine + Compose plugin)
+- Go `1.25+`
+- .NET SDK `8.0` (needed for `product-service`, currently WIP)
+
+## Quick Start (Full Stack via Docker)
+
+From the repository root:
+
+```bash
+cd infra
+docker compose up -d
+```
+
+Useful commands:
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose down
+docker compose down -v
+```
+
+## Local URLs and Default Credentials
+
+| Component | URL | Credentials |
 | --- | --- | --- |
-| user-service | 8081 | Profiles, addresses, Keycloak token validation |
-| product-service | 8082 | Catalog API on ASP.NET Core + PostgreSQL |
-| order-service | 8083 | Order lifecycle, saga orchestration, compensations |
-| payment-service | 8084 | Payment provider integrations, retries, refunds |
-| notification-service | 8085 | Async email/SMS via Kafka consumers |
-| search-service | 8086 | Elasticsearch queries (cached in Redis) and result delivery |
-| Nginx | 80/443 | JWT validation, request routing, fallback pages |
-| Keycloak | 8180 | Identity provider, realm configuration, user mgmt |
+| Nginx gateway | http://localhost | - |
+| User service | http://localhost:8081 | - |
+| Product service (WIP) | http://localhost:8082 | - |
+| Search service | http://localhost:8086 | - |
+| Keycloak | http://localhost:8180 | `admin / admin123` |
+| Grafana | http://localhost:3000 | `admin / grafana123` |
+| Prometheus | http://localhost:9090 | - |
+| Jaeger | http://localhost:16686 | - |
+| pgAdmin | http://localhost:5050 | `admin@ecommerce.com / pgadmin123` |
+| Kibana | http://localhost:5601 | - |
+| Kafdrop | http://localhost:9000 | - |
+| Elasticsearch | http://localhost:9200 | - |
+| PostgreSQL | `localhost:5432` | `ecommerce / ecommerce123` |
+| Redis | `localhost:6379` | password: `redis123` |
+| Kafka | `localhost:9092` | - |
+
+## Run Services Locally (Without Docker Build)
+
+Run shared infra first (`cd infra && docker compose up -d`), then start services from separate terminals.
+
+### user-service
+
+```bash
+cd services/user-service
+cp .env.example .env
+go run cmd/main.go
+```
+
+Default port: `8081`
+
+### search-service
+
+```bash
+cd services/search-service
+cp .env.example .env
+go run cmd/main.go
+```
+
+Default port: `8086`
+
+## API Surface (Current)
+
+### Gateway-routed endpoints (`http://localhost`)
+
+- `GET /health` (Nginx health)
+- `GET /realms/*` (Keycloak passthrough)
+- `GET /api/v1/products`
+- `GET /api/v1/products/{id}`
+- `GET /api/v1/categories`
+- `POST|PUT|DELETE /api/v1/products...` (auth required)
+- `/api/v1/users/*` (auth required)
+
+Note: search is currently **not** routed via Nginx in `infra/nginx/conf.d/ecommerce.conf`.
+Note: product routes are available in gateway config but the `.NET` service itself is still WIP.
+
+### Direct service endpoints
+
+- user-service (`:8081`)
+- `GET /health`
+- `GET /metrics`
+- `GET /internal/auth/validate` (used internally by Nginx `auth_request`)
+- `GET /api/v1/users/me`
+- `PUT /api/v1/users/me`
+- `GET|POST|PUT|DELETE|PATCH /api/v1/users/me/addresses...`
+
+- search-service (`:8086`)
+- `GET /search?q=<query>`
+
+## Authentication
+
+Protected routes are validated through:
+1. Client sends bearer token to Nginx.
+2. Nginx calls `user-service` endpoint `/internal/auth/validate`.
+3. `user-service` introspects token against Keycloak.
+4. Nginx forwards request with user headers to downstream service.
+
+Token endpoint (via gateway):
+
+```bash
+curl -X POST http://localhost/realms/ecommerce/protocol/openid-connect/token \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=password' \
+  -d 'client_id=ecommerce-app' \
+  -d 'username=<username>' \
+  -d 'password=<password>'
+```
+
+## Database and Migrations
+
+- Databases are created by `infra/init-scripts/postgres/01-init-databases.sql`.
+- `user-service` SQL migration files exist in `services/user-service/migrations` and are not auto-applied by the service itself.
+
+## Tests
+
+Executed and passing in this environment:
+
+```bash
+cd services/user-service
+env GOCACHE=/tmp/ecommerce-go-build-cache GOMODCACHE=/tmp/ecommerce-go-mod-cache go test ./...
+
+cd ../search-service
+env GOCACHE=/tmp/ecommerce-go-build-cache GOMODCACHE=/tmp/ecommerce-go-mod-cache go test ./...
+```
 
 ## Infrastructure Notes
-- Docker Compose in `infra/` wires PostgreSQL instances, Kafka (with Schema Registry), Redis, Keycloak, Grafana, Prometheus, Jaeger, and observability tooling for local development.
-- `product-service` is implemented in .NET 8 and bootstraps its schema on startup (`EnsureCreated`) against `products_db`.
-- Docker Compose now also starts `search-service`, which depends on Elasticsearch + Redis and caches query results for faster autocomplete/lookup responses.
-- Kubernetes manifests (`infra/k8s/`) describe deployments, services, secrets, and ingress rules for production, with Terraform managing cloud networking, storage, and clusters.
-- Keycloak realm exports live in `infra/keycloak/`; run `infra/keycloak/import.sh` (or the equivalent script) after an upgrade to re-import the realm.
-- Terraform modules live under `infra/terraform/` and cover cloud resources for databases, Kafka, and load balancing.
 
-## Observability & Monitoring
-- Logs stream structured JSON via `go.uber.org/zap` with fields `service_name`, `request_id`, and `user_id` and are aggregated by Loki/ELK in production.
-- Prometheus scrapes `/metrics` on every service. Dashboards in Grafana cover latency, error rates, DB pools, and Kafka lag.
-- Jaeger collects OpenTelemetry traces via OTLP HTTP (`http://jaeger:4318/v1/traces`) to visualize distributed requests.
+- Compose file: `infra/docker-compose.yml`
+- Keycloak realm import: `infra/keycloak/realm-export.json`
+- K8s manifests: `infra/k8s`
+- Terraform config: `infra/terraform`
 
-## API & Docs
-- OpenAPI specs live under `docs/openapi/` for each service; use Swagger or any spec-aware client to validate contracts.
-- Public endpoints (products, search, categories) accept anonymous requests. Private endpoints require Keycloak-issued JWTs tied to `ecommerce-app` clients.
-- product-service endpoints:
-  - `GET /api/v1/products` and `GET /api/v1/products/{id}` (public)
-  - `GET /api/v1/categories` (public)
-  - `POST/PUT/DELETE /api/v1/products...` (protected by Nginx auth_request)
-- Authentication flow: POST to `/realms/ecommerce/protocol/openid-connect/token` with client credentials, then include `Authorization: Bearer <token>` in API calls.
+## Known Gaps
 
-## Development Workflow
-- CI (GitHub Actions) path filters trigger only the touched service pipeline. Go services run `go vet`, `golangci-lint`, and `go test ./... -race -cover`; product-service runs `dotnet build`/`dotnet test`; all services build Docker images and push on `main`.
-- Run local smoke tests by hitting `/api/v1/products`, `/api/v1/orders`, and `/api/v1/users/me` with the appropriate scopes.
-- Kafka topics are under `infra/kafka/topics.yml`; use `kafdrop` (http://localhost:9000) to inspect message flows.
-
-## Contributing & Testing
-- Add unit tests near the behavior you change. Use mocks for repositories and Kafka producers.
-- Integration tests rely on the infra stack started via Docker Compose; run them inside the relevant service directory (`go test ./...` for Go services, `dotnet test` for product-service).
-- For schema changes, update SQL migrations in `services/<service>/migrations` and ensure they are idempotent.
-
-## License
-MIT License. See `LICENSE`.
+- `order-service`, `payment-service`, and `notification-service` are placeholders only.
+- `product-service` is currently WIP and may change without compatibility guarantees.
+- `docs/openapi` does not yet contain service specs.
+- Prometheus config includes scrape jobs for not-yet-implemented services.
